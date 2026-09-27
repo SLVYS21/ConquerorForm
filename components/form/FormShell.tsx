@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ProgressBar } from "./ProgressBar";
 import { ChatBubble } from "./ChatBubble";
+import { TypingIndicator } from "./TypingIndicator";
 import { Welcome } from "./Welcome";
 import { Done } from "./Done";
 import { InputRenderer, formatAnswerForDisplay } from "./InputRenderer";
@@ -35,11 +36,24 @@ function validate(q: Question, v: string): string | null {
   return null;
 }
 
+function hapticTick() {
+  if (typeof navigator === "undefined") return;
+  if (typeof navigator.vibrate === "function") {
+    try {
+      navigator.vibrate(8);
+    } catch {
+      /* noop */
+    }
+  }
+}
+
 export function FormShell({ theme }: Props) {
   const [phase, setPhase] = useState<Phase>("welcome");
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [typingPhase, setTypingPhase] = useState<null | "start" | "advance">(null);
+  const isTyping = typingPhase !== null;
   const sessionIdRef = useRef<string>("");
   const startedRef = useRef(false);
   const metaSentRef = useRef(false);
@@ -64,7 +78,7 @@ export function FormShell({ theme }: Props) {
     if (phase !== "chat") return;
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [phase, stepIndex]);
+  }, [phase, stepIndex, isTyping]);
 
   const save = useCallback(
     async (patch: Record<string, string>, currentStepIndex: number, completed = false) => {
@@ -123,6 +137,8 @@ export function FormShell({ theme }: Props) {
       save({}, 0, false);
     }
     setPhase("chat");
+    setTypingPhase("start");
+    window.setTimeout(() => setTypingPhase(null), 700);
   }, [save]);
 
   const setValue = useCallback(
@@ -144,6 +160,7 @@ export function FormShell({ theme }: Props) {
     const patch = { [q.id]: v };
     const isLast = stepIndex === total - 1;
     trackStep(stepIndex + 1, q.id);
+    hapticTick();
 
     if (isLast) {
       trackLead();
@@ -160,7 +177,11 @@ export function FormShell({ theme }: Props) {
     }
 
     save(patch, stepIndex, false);
-    setStepIndex((i) => i + 1);
+    setTypingPhase("advance");
+    window.setTimeout(() => {
+      setStepIndex((i) => i + 1);
+      setTypingPhase(null);
+    }, 650);
   }, [answers, currentQ, save, stepIndex, total, theme.accent, theme.redirectUrl]);
 
   const back = useCallback(() => {
@@ -216,32 +237,69 @@ export function FormShell({ theme }: Props) {
                   </div>
                 ))}
 
-                <ChatBubble
-                  kind="question"
-                  avatarSrc={theme.avatarUrl}
-                  avatarName={theme.avatarName}
-                  animateIn
-                >
-                  <div>
-                    <div className="text-[15px] md:text-[16px] font-medium">{currentQ.label}</div>
-                    {currentQ.hint ? (
-                      <div
-                        className="mt-1 text-[13px] leading-relaxed"
-                        style={{ color: "color-mix(in oklab, var(--bubble-text) 55%, transparent)" }}
+                <AnimatePresence mode="wait" initial={false}>
+                  {typingPhase === "advance" ? (
+                    <motion.div
+                      key={`typing-advance-${stepIndex}`}
+                      className="flex flex-col gap-3"
+                      initial={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    >
+                      <ChatBubble
+                        kind="question"
+                        avatarSrc={theme.avatarUrl}
+                        avatarName={theme.avatarName}
                       >
-                        {currentQ.hint}
+                        {currentQ.label}
+                      </ChatBubble>
+                      {currentValue ? (
+                        <ChatBubble kind="answer" animateIn>
+                          {formatAnswerForDisplay(currentQ, currentValue)}
+                        </ChatBubble>
+                      ) : null}
+                      <TypingIndicator
+                        avatarSrc={theme.avatarUrl}
+                        avatarName={theme.avatarName}
+                      />
+                    </motion.div>
+                  ) : typingPhase === "start" ? (
+                    <TypingIndicator
+                      key="typing-start"
+                      avatarSrc={theme.avatarUrl}
+                      avatarName={theme.avatarName}
+                    />
+                  ) : (
+                    <ChatBubble
+                      key={`q-${currentQ.id}`}
+                      kind="question"
+                      avatarSrc={theme.avatarUrl}
+                      avatarName={theme.avatarName}
+                      animateIn
+                    >
+                      <div>
+                        <div className="text-[15px] md:text-[16px] font-medium">{currentQ.label}</div>
+                        {currentQ.hint ? (
+                          <div
+                            className="mt-1 text-[13px] leading-relaxed"
+                            style={{ color: "color-mix(in oklab, var(--bubble-text) 55%, transparent)" }}
+                          >
+                            {currentQ.hint}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                </ChatBubble>
+                    </ChatBubble>
+                  )}
+                </AnimatePresence>
               </div>
 
               <motion.div
                 key={`input-${currentQ.id}`}
                 initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+                animate={{ opacity: isTyping ? 0 : 1, y: isTyping ? 8 : 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay: isTyping ? 0 : 0.2 }}
                 className="pl-[40px]"
+                style={{ pointerEvents: isTyping ? "none" : "auto" }}
+                aria-hidden={isTyping}
               >
                 <InputRenderer
                   question={currentQ}
@@ -260,7 +318,8 @@ export function FormShell({ theme }: Props) {
                   <button
                     type="button"
                     onClick={advance}
-                    className="inline-flex items-center gap-2 px-5 py-3 font-semibold text-[14px] transition-all hover:brightness-95 active:brightness-90"
+                    disabled={isTyping}
+                    className="inline-flex items-center gap-2 px-5 py-3 font-semibold text-[14px] transition-all hover:brightness-95 active:brightness-90 disabled:opacity-60"
                     style={{
                       background: "var(--accent)",
                       color: "var(--accent-text)",

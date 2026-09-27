@@ -29,7 +29,7 @@ export function TextareaField({ value, onChange, onSubmit, placeholder }: Props)
       }}
       placeholder={placeholder}
       rows={4}
-      className="w-full text-[15px] font-medium px-4 py-3 border-2 transition-colors placeholder:opacity-40 resize-none"
+      className="w-full text-[16px] md:text-[15px] font-medium px-4 py-3 border-2 transition-colors placeholder:opacity-40 resize-none"
       style={{
         borderColor: value ? "var(--border-focus)" : "var(--border)",
         borderRadius: "var(--radius)",

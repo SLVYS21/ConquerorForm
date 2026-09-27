@@ -22,11 +22,18 @@ export function ChatBubble({
   animateIn = false,
 }: Props) {
   const isQuestion = kind === "question";
+
+  const initial = animateIn
+    ? isQuestion
+      ? { opacity: 0, y: 8, x: -6, scale: 0.96 }
+      : { opacity: 0, y: 8, x: 12, scale: 0.96 }
+    : false;
+
   return (
     <motion.div
-      initial={animateIn ? { opacity: 0, y: 10 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      initial={initial}
+      animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+      transition={{ type: "spring", damping: 22, stiffness: 320, mass: 0.6 }}
       className={`flex items-end gap-2 ${isQuestion ? "" : "justify-end"}`}
     >
       {isQuestion && showAvatar ? (
