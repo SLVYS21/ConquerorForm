@@ -16,15 +16,13 @@ export default async function SessionsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-end justify-between gap-4">
-        <div>
-          <div className="text-[13px] uppercase tracking-wide mb-2" style={{ color: "var(--muted)" }}>
-            Sessions
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {sessions.length} entrée{sessions.length !== 1 ? "s" : ""}
-          </h1>
+      <div className="mb-6 md:mb-8">
+        <div className="text-[12px] md:text-[13px] uppercase tracking-wide mb-1.5 md:mb-2" style={{ color: "var(--muted)" }}>
+          Sessions
         </div>
+        <h1 className="text-2xl md:text-4xl font-semibold tracking-tight">
+          {sessions.length} entrée{sessions.length !== 1 ? "s" : ""}
+        </h1>
       </div>
       {error ? (
         <div

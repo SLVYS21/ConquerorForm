@@ -13,13 +13,13 @@ export default async function ThemePage() {
   }
   return (
     <div>
-      <div className="mb-8">
-        <div className="text-[13px] uppercase tracking-wide mb-2" style={{ color: "var(--muted)" }}>
+      <div className="mb-6 md:mb-8">
+        <div className="text-[12px] md:text-[13px] uppercase tracking-wide mb-1.5 md:mb-2" style={{ color: "var(--muted)" }}>
           Personnalisation
         </div>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Paramètres du formulaire</h1>
-        <p className="mt-2 text-[15px]" style={{ color: "var(--muted)" }}>
-          Contenus, avatar, redirection, thème visuel. L'aperçu à droite reflète tes changements en direct.
+        <h1 className="text-2xl md:text-4xl font-semibold tracking-tight">Paramètres du formulaire</h1>
+        <p className="mt-2 text-[14px] md:text-[15px]" style={{ color: "var(--muted)" }}>
+          Contenus, avatar, redirection, thème visuel. L'aperçu reflète tes changements en direct.
         </p>
       </div>
       <ThemeEditor initial={theme} />

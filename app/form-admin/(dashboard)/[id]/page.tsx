@@ -36,31 +36,36 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
         ← Retour aux sessions
       </Link>
 
-      <div className="mt-6 mb-10">
-        <div className="text-[13px] uppercase tracking-wide mb-2" style={{ color: "var(--muted)" }}>
+      <div className="mt-6 mb-8 md:mb-10">
+        <div className="text-[12px] md:text-[13px] uppercase tracking-wide mb-1.5 md:mb-2" style={{ color: "var(--muted)" }}>
           Session {session.session_id.slice(0, 8)}
         </div>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+        <h1 className="text-2xl md:text-4xl font-semibold tracking-tight break-words">
           {session.first_name || "Anonyme"}
         </h1>
-        <div className="flex gap-3 mt-3 text-[14px]" style={{ color: "var(--muted)" }}>
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 text-[13px] md:text-[14px]" style={{ color: "var(--muted)" }}>
           {session.email ? (
-            <a href={`mailto:${session.email}`} className="hover:opacity-70">
+            <a href={`mailto:${session.email}`} className="hover:opacity-70 break-all">
               {session.email}
             </a>
           ) : null}
+          {session.email && session.whatsapp ? (
+            <span aria-hidden className="hidden sm:inline">·</span>
+          ) : null}
           {session.whatsapp ? (
-            <>
-              <span>·</span>
-              <a href={`https://wa.me/${session.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="hover:opacity-70">
-                WhatsApp {session.whatsapp}
-              </a>
-            </>
+            <a
+              href={`https://wa.me/${session.whatsapp.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:opacity-70"
+            >
+              WhatsApp {session.whatsapp}
+            </a>
           ) : null}
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-8 md:mb-10">
         <MetaCard label="Démarrée" value={fmt(session.started_at)} />
         <MetaCard label="Dernière mise à jour" value={fmt(session.last_updated_at)} />
         <MetaCard
@@ -70,7 +75,7 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
         />
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">Réponses</h2>
+      <h2 className="text-lg font-semibold mb-3 md:mb-4">Réponses</h2>
       <div className="border" style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}>
         {QUESTIONS.map((q, i) => {
           const val = session[q.id];
@@ -79,13 +84,16 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
           return (
             <div
               key={q.id}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 px-5 py-4"
+              className="grid grid-cols-1 md:grid-cols-3 gap-1.5 md:gap-4 px-4 md:px-5 py-3.5 md:py-4"
               style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}
             >
-              <div className="text-[13px]" style={{ color: "var(--muted)" }}>
+              <div className="text-[12px] md:text-[13px]" style={{ color: "var(--muted)" }}>
                 {q.label}
               </div>
-              <div className="md:col-span-2 text-[15px] font-medium" style={{ color: val ? "var(--text)" : "var(--muted)" }}>
+              <div
+                className="md:col-span-2 text-[14px] md:text-[15px] font-medium break-words"
+                style={{ color: val ? "var(--text)" : "var(--muted)" }}
+              >
                 {display || "·"}
               </div>
             </div>
@@ -96,7 +104,7 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
       {session.user_agent || session.referrer || session.landing_url ? (
         <details className="mt-8 text-[13px]" style={{ color: "var(--muted)" }}>
           <summary className="cursor-pointer">Contexte technique</summary>
-          <div className="mt-3 space-y-1 font-mono text-[12px]">
+          <div className="mt-3 space-y-1 font-mono text-[11px] md:text-[12px] break-all">
             {session.landing_url ? <div>URL : {session.landing_url}</div> : null}
             {session.referrer ? <div>Referrer : {session.referrer}</div> : null}
             {session.user_agent ? <div>UA : {session.user_agent}</div> : null}

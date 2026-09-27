@@ -53,13 +53,19 @@ export function SessionsTable({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-1 p-1" style={{ background: "color-mix(in oklab, var(--border) 40%, transparent)", borderRadius: "var(--radius)" }}>
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
+        <div
+          className="flex items-center gap-1 p-1 self-start sm:self-auto overflow-x-auto no-scrollbar"
+          style={{
+            background: "color-mix(in oklab, var(--border) 40%, transparent)",
+            borderRadius: "var(--radius)",
+          }}
+        >
           {(["all", "in_progress", "completed"] as Filter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="px-3 py-1.5 text-[13px] font-medium transition-all"
+              className="px-3 py-1.5 text-[13px] font-medium transition-all whitespace-nowrap"
               style={{
                 background: filter === f ? "var(--bg)" : "transparent",
                 color: filter === f ? "var(--text)" : "var(--muted)",
@@ -74,8 +80,8 @@ export function SessionsTable({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Rechercher (prénom / email / whatsapp)…"
-          className="flex-1 min-w-[240px] px-4 py-2 text-[14px] border transition-colors"
+          placeholder="Rechercher…"
+          className="flex-1 sm:min-w-[240px] px-4 py-2 text-[14px] border transition-colors"
           style={{
             borderColor: "var(--border)",
             borderRadius: "var(--radius)",
@@ -86,13 +92,18 @@ export function SessionsTable({
         <a
           href="/api/admin/sessions"
           download="sessions.json"
-          className="text-[13px] px-3 py-2 border transition-colors hover:opacity-70"
+          className="text-[13px] px-3 py-2 border transition-colors hover:opacity-70 text-center self-start sm:self-auto"
           style={{ borderColor: "var(--border)", borderRadius: "var(--radius)", color: "var(--muted)" }}
         >
           Export JSON
         </a>
       </div>
-      <div className="overflow-x-auto border" style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}>
+
+      {/* Desktop: table */}
+      <div
+        className="hidden md:block overflow-x-auto border"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}
+      >
         <table className="w-full text-[14px]">
           <thead>
             <tr style={{ background: "color-mix(in oklab, var(--border) 30%, transparent)" }}>
@@ -133,16 +144,7 @@ export function SessionsTable({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className="inline-block px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                        style={{
-                          background: isCompleted ? "color-mix(in oklab, var(--accent) 12%, transparent)" : "color-mix(in oklab, var(--muted) 12%, transparent)",
-                          color: isCompleted ? "var(--accent)" : "var(--muted)",
-                          borderRadius: `calc(var(--radius) * 0.5)`,
-                        }}
-                      >
-                        {isCompleted ? "Terminée" : "En cours"}
-                      </span>
+                      <StatusPill isCompleted={isCompleted} />
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--muted)" }}>{fmtDate(s.last_updated_at)}</td>
                     <td className="px-4 py-3 text-right">
@@ -161,6 +163,78 @@ export function SessionsTable({
           </tbody>
         </table>
       </div>
+
+      {/* Mobile: cards */}
+      <div className="md:hidden flex flex-col gap-3">
+        {filtered.length === 0 ? (
+          <div
+            className="px-4 py-10 text-center border text-[14px]"
+            style={{ color: "var(--muted)", borderColor: "var(--border)", borderRadius: "var(--radius)" }}
+          >
+            Aucune session pour ce filtre.
+          </div>
+        ) : (
+          filtered.map((s) => {
+            const isCompleted = Boolean(s.completed_at);
+            const step = Number(s.current_step ?? 0);
+            const progress = Math.round((step / totalQuestions) * 100);
+            return (
+              <Link
+                key={s.session_id}
+                href={`/form-admin/${s.session_id}`}
+                className="block p-4 border transition-colors active:opacity-70"
+                style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}
+              >
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15px] font-semibold truncate">
+                      {s.first_name || "Anonyme"}
+                    </div>
+                    <div className="text-[13px] truncate" style={{ color: "var(--muted)" }}>
+                      {s.email || s.whatsapp || "·"}
+                    </div>
+                  </div>
+                  <StatusPill isCompleted={isCompleted} />
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <div
+                    className="flex-1 h-1.5 rounded-full overflow-hidden"
+                    style={{ background: "var(--border)" }}
+                  >
+                    <div
+                      className="h-full transition-all"
+                      style={{ background: "var(--accent)", width: `${isCompleted ? 100 : progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[12px] tabular-nums" style={{ color: "var(--muted)" }}>
+                    {isCompleted ? "100%" : `${progress}%`}
+                  </span>
+                </div>
+                <div className="mt-2 text-[12px]" style={{ color: "var(--muted)" }}>
+                  {fmtDate(s.last_updated_at)}
+                </div>
+              </Link>
+            );
+          })
+        )}
+      </div>
     </>
+  );
+}
+
+function StatusPill({ isCompleted }: { isCompleted: boolean }) {
+  return (
+    <span
+      className="inline-block px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide whitespace-nowrap"
+      style={{
+        background: isCompleted
+          ? "color-mix(in oklab, var(--accent) 12%, transparent)"
+          : "color-mix(in oklab, var(--muted) 12%, transparent)",
+        color: isCompleted ? "var(--accent)" : "var(--muted)",
+        borderRadius: `calc(var(--radius) * 0.5)`,
+      }}
+    >
+      {isCompleted ? "Terminée" : "En cours"}
+    </span>
   );
 }

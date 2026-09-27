@@ -26,7 +26,7 @@ export function ThemePreview({ theme }: { theme: Theme }) {
 
   return (
     <div
-      className="sticky top-24 border overflow-hidden"
+      className="lg:sticky lg:top-24 border overflow-hidden"
       style={{ borderColor: theme.border, borderRadius: theme.radius }}
     >
       <div
@@ -56,7 +56,7 @@ export function ThemePreview({ theme }: { theme: Theme }) {
           ))}
         </div>
       </div>
-      <div className="p-6 h-[560px] overflow-hidden flex flex-col justify-center" style={style}>
+      <div className="p-4 md:p-6 h-[480px] md:h-[560px] overflow-hidden flex flex-col justify-center" style={style}>
         {mode === "welcome" ? <WelcomePreview theme={theme} /> : null}
         {mode === "chat" ? <ChatPreview theme={theme} /> : null}
         {mode === "done" ? <DonePreview theme={theme} /> : null}
