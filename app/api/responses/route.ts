@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertSession } from "@/lib/responses";
-import { QUESTIONS } from "@/config/form";
+import { getQuestions } from "@/lib/questions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const KNOWN_ANSWER_IDS = new Set(QUESTIONS.map((q) => q.id));
 const KNOWN_META_KEYS = new Set([
   "user_agent",
   "referrer",
@@ -49,7 +48,10 @@ export async function POST(req: Request) {
 
   const { session_id, current_step, patch, meta, completed } = parsed.data;
 
-  const safePatch = pickKnown(patch, KNOWN_ANSWER_IDS);
+  const questions = await getQuestions();
+  const knownAnswerIds = new Set(questions.map((q) => q.id));
+
+  const safePatch = pickKnown(patch, knownAnswerIds);
   const safeMeta = meta ? pickKnown(meta, KNOWN_META_KEYS) : undefined;
 
   try {

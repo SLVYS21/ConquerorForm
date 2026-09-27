@@ -8,13 +8,13 @@ import { TypingIndicator } from "./TypingIndicator";
 import { Welcome } from "./Welcome";
 import { Done } from "./Done";
 import { InputRenderer, formatAnswerForDisplay } from "./InputRenderer";
-import { QUESTIONS, type Question } from "@/config/form";
+import type { Question } from "@/config/form";
 import { getOrCreateSessionId, collectContext, clearSessionId } from "@/lib/session";
 import { trackStart, trackStep, trackLead } from "@/lib/pixel";
 import { celebrate } from "@/lib/confetti";
 import type { Theme } from "@/data/theme.default";
 
-type Props = { theme: Theme };
+type Props = { theme: Theme; questions: Question[] };
 
 type Phase = "welcome" | "chat" | "done";
 
@@ -47,7 +47,7 @@ function hapticTick() {
   }
 }
 
-export function FormShell({ theme }: Props) {
+export function FormShell({ theme, questions }: Props) {
   const [phase, setPhase] = useState<Phase>("welcome");
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -63,16 +63,16 @@ export function FormShell({ theme }: Props) {
     sessionIdRef.current = getOrCreateSessionId();
   }, []);
 
-  const total = QUESTIONS.length;
-  const currentQ = QUESTIONS[stepIndex];
+  const total = questions.length;
+  const currentQ = questions[stepIndex];
   const currentValue = answers[currentQ?.id ?? ""] ?? "";
 
   const answeredHistory = useMemo(() => {
-    return QUESTIONS.slice(0, stepIndex).map((q) => ({
+    return questions.slice(0, stepIndex).map((q) => ({
       question: q,
       answer: answers[q.id] ?? "",
     }));
-  }, [stepIndex, answers]);
+  }, [questions, stepIndex, answers]);
 
   useEffect(() => {
     if (phase !== "chat") return;

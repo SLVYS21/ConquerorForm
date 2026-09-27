@@ -1,5 +1,5 @@
 import { listSessions } from "@/lib/responses";
-import { QUESTIONS } from "@/config/form";
+import { getQuestions } from "@/lib/questions";
 import { SessionsTable } from "@/components/admin/SessionsTable";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,7 @@ export default async function SessionsPage() {
   } catch (err) {
     error = (err as Error).message;
   }
+  const questions = await getQuestions();
 
   return (
     <div>
@@ -36,7 +37,7 @@ export default async function SessionsPage() {
           Erreur de chargement des sessions : {error}
         </div>
       ) : null}
-      <SessionsTable sessions={sessions} totalQuestions={QUESTIONS.length} />
+      <SessionsTable sessions={sessions} totalQuestions={questions.length} />
     </div>
   );
 }

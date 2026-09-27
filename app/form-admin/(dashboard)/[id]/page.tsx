@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/responses";
-import { QUESTIONS } from "@/config/form";
+import { getQuestions } from "@/lib/questions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ function fmt(iso: string): string {
 
 export default async function SessionDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getSession(id);
+  const [session, questions] = await Promise.all([getSession(id), getQuestions()]);
 
   if (!session) {
     return (
@@ -77,7 +77,7 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
 
       <h2 className="text-lg font-semibold mb-3 md:mb-4">Réponses</h2>
       <div className="border" style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}>
-        {QUESTIONS.map((q, i) => {
+        {questions.map((q, i) => {
           const val = session[q.id];
           const choice = q.choices?.find((c) => c.value === val);
           const display = choice?.label ?? val ?? "·";

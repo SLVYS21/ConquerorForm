@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS: { href: Route; label: string }[] = [
   { href: "/form-admin", label: "Sessions" },
+  { href: "/form-admin/questions" as Route, label: "Questions" },
   { href: "/form-admin/theme", label: "Paramètres" },
 ];
 

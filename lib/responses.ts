@@ -1,6 +1,6 @@
 import "server-only";
 import { readRange, writeRange, appendRow, ensureTabs } from "@/lib/sheets";
-import { QUESTIONS } from "@/config/form";
+import { getQuestions } from "@/lib/questions";
 
 const TAB = "responses";
 const CORE_COLUMNS = [
@@ -19,12 +19,7 @@ const CORE_COLUMNS = [
   "utm_content",
 ] as const;
 
-const ANSWER_COLUMNS = QUESTIONS.map((q) => q.id);
-export const ALL_COLUMNS: string[] = [...CORE_COLUMNS, ...ANSWER_COLUMNS];
-
 export type SessionRow = Record<string, string>;
-
-const A1_COL_COUNT = ALL_COLUMNS.length;
 
 function columnLetter(index: number): string {
   let n = index;
@@ -36,17 +31,37 @@ function columnLetter(index: number): string {
   return s;
 }
 
-const LAST_COL_LETTER = columnLetter(A1_COL_COUNT - 1);
+async function readHeader(): Promise<string[]> {
+  const rows = await readRange(`${TAB}!1:1`);
+  return rows?.[0] ?? [];
+}
 
-let headerEnsured = false;
-async function ensureHeader(): Promise<void> {
-  if (headerEnsured) return;
+async function writeHeader(cols: string[]): Promise<void> {
+  const last = columnLetter(cols.length - 1);
+  await writeRange(`${TAB}!A1:${last}1`, [cols]);
+}
+
+async function getColumns(extraIds: string[] = []): Promise<string[]> {
   await ensureTabs([TAB]);
-  const rows = await readRange(`${TAB}!A1:${LAST_COL_LETTER}1`);
-  if (!rows[0] || rows[0].length === 0) {
-    await writeRange(`${TAB}!A1:${LAST_COL_LETTER}1`, [ALL_COLUMNS]);
+  const existing = await readHeader();
+  if (existing.length === 0) {
+    const questions = await getQuestions();
+    const seed = [...CORE_COLUMNS, ...questions.map((q) => q.id)];
+    const merged = mergeUnique(seed, extraIds);
+    await writeHeader(merged);
+    return merged;
   }
-  headerEnsured = true;
+  const missing = extraIds.filter((id) => !existing.includes(id));
+  if (missing.length === 0) return existing;
+  const merged = [...existing, ...missing];
+  await writeHeader(merged);
+  return merged;
+}
+
+function mergeUnique(base: readonly string[], extras: string[]): string[] {
+  const out = [...base];
+  for (const e of extras) if (!out.includes(e)) out.push(e);
+  return out;
 }
 
 const rowIndexCache = new Map<string, number>();
@@ -65,8 +80,16 @@ async function findRowIndex(sessionId: string): Promise<number | null> {
   return null;
 }
 
-function toValues(record: SessionRow): string[] {
-  return ALL_COLUMNS.map((col) => record[col] ?? "");
+function toValues(cols: string[], record: SessionRow): string[] {
+  return cols.map((col) => record[col] ?? "");
+}
+
+function rowToRecord(cols: string[], arr: string[] | undefined): SessionRow {
+  const record: SessionRow = {};
+  cols.forEach((col, i) => {
+    record[col] = arr?.[i] ?? "";
+  });
+  return record;
 }
 
 export type UpsertInput = {
@@ -78,7 +101,9 @@ export type UpsertInput = {
 };
 
 export async function upsertSession(input: UpsertInput): Promise<void> {
-  await ensureHeader();
+  const patchKeys = Object.keys({ ...(input.meta ?? {}), ...input.patch });
+  const cols = await getColumns(patchKeys);
+  const lastCol = columnLetter(cols.length - 1);
   const nowIso = new Date().toISOString();
   const rowIndex = await findRowIndex(input.sessionId);
 
@@ -92,16 +117,12 @@ export async function upsertSession(input: UpsertInput): Promise<void> {
       ...(input.meta ?? {}),
       ...input.patch,
     };
-    await appendRow(TAB, toValues(row));
+    await appendRow(TAB, toValues(cols, row));
     return;
   }
 
-  const existingRows = await readRange(`${TAB}!A${rowIndex}:${LAST_COL_LETTER}${rowIndex}`);
-  const existingArr = existingRows[0] ?? [];
-  const existing: SessionRow = {};
-  ALL_COLUMNS.forEach((col, i) => {
-    existing[col] = existingArr[i] ?? "";
-  });
+  const existingRows = await readRange(`${TAB}!A${rowIndex}:${lastCol}${rowIndex}`);
+  const existing = rowToRecord(cols, existingRows[0]);
 
   const prevStep = Number.parseInt(existing.current_step || "0", 10) || 0;
   const merged: SessionRow = {
@@ -113,32 +134,24 @@ export async function upsertSession(input: UpsertInput): Promise<void> {
   };
 
   await writeRange(
-    `${TAB}!A${rowIndex}:${LAST_COL_LETTER}${rowIndex}`,
-    [toValues(merged)]
+    `${TAB}!A${rowIndex}:${lastCol}${rowIndex}`,
+    [toValues(cols, merged)]
   );
 }
 
 export async function listSessions(): Promise<SessionRow[]> {
-  await ensureHeader();
-  const rows = await readRange(`${TAB}!A2:${LAST_COL_LETTER}`);
-  return rows.map((r) => {
-    const record: SessionRow = {};
-    ALL_COLUMNS.forEach((col, i) => {
-      record[col] = r[i] ?? "";
-    });
-    return record;
-  });
+  const cols = await getColumns();
+  const lastCol = columnLetter(cols.length - 1);
+  const rows = await readRange(`${TAB}!A2:${lastCol}`);
+  return rows.map((r) => rowToRecord(cols, r));
 }
 
 export async function getSession(sessionId: string): Promise<SessionRow | null> {
   const rowIndex = await findRowIndex(sessionId);
   if (rowIndex === null) return null;
-  const rows = await readRange(`${TAB}!A${rowIndex}:${LAST_COL_LETTER}${rowIndex}`);
-  const arr = rows[0];
-  if (!arr) return null;
-  const record: SessionRow = {};
-  ALL_COLUMNS.forEach((col, i) => {
-    record[col] = arr[i] ?? "";
-  });
-  return record;
+  const cols = await getColumns();
+  const lastCol = columnLetter(cols.length - 1);
+  const rows = await readRange(`${TAB}!A${rowIndex}:${lastCol}${rowIndex}`);
+  if (!rows[0]) return null;
+  return rowToRecord(cols, rows[0]);
 }
