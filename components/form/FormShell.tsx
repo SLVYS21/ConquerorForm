@@ -10,7 +10,7 @@ import { Done } from "./Done";
 import { InputRenderer, formatAnswerForDisplay } from "./InputRenderer";
 import type { Question } from "@/config/form";
 import { getOrCreateSessionId, collectContext, clearSessionId } from "@/lib/session";
-import { trackStart, trackStep, trackLead } from "@/lib/pixel";
+import { trackSubmitApplication } from "@/lib/pixel";
 import { celebrate } from "@/lib/confetti";
 import type { Theme } from "@/data/theme.default";
 
@@ -55,7 +55,6 @@ export function FormShell({ theme, questions }: Props) {
   const [typingPhase, setTypingPhase] = useState<null | "start" | "advance">(null);
   const isTyping = typingPhase !== null;
   const sessionIdRef = useRef<string>("");
-  const startedRef = useRef(false);
   const metaSentRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -81,11 +80,14 @@ export function FormShell({ theme, questions }: Props) {
   }, [phase, stepIndex, isTyping]);
 
   const save = useCallback(
-    async (patch: Record<string, string>, currentStepIndex: number, completed = false) => {
+    async (allAnswers: Record<string, string>, currentStepIndex: number, completed = false) => {
+      const filledCount = Object.values(allAnswers).filter((v) => v && v.trim()).length;
+      if (!completed && total >= 2 && filledCount < 2) return;
+
       const body: Record<string, unknown> = {
         session_id: sessionIdRef.current,
         current_step: currentStepIndex,
-        patch,
+        patch: allAnswers,
         completed,
       };
       if (!metaSentRef.current) {
@@ -103,13 +105,15 @@ export function FormShell({ theme, questions }: Props) {
         /* silent */
       }
     },
-    []
+    [total]
   );
 
   useEffect(() => {
     function beforeUnload() {
       if (phase === "done") return;
-      if (Object.keys(answers).length === 0) return;
+      const filledCount = Object.values(answers).filter((v) => v && v.trim()).length;
+      if (total >= 2 && filledCount < 2) return;
+      if (filledCount === 0) return;
       const payload = JSON.stringify({
         session_id: sessionIdRef.current,
         current_step: stepIndex,
@@ -128,18 +132,13 @@ export function FormShell({ theme, questions }: Props) {
     }
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, [answers, stepIndex, phase]);
+  }, [answers, stepIndex, phase, total]);
 
   const startForm = useCallback(() => {
-    if (!startedRef.current) {
-      startedRef.current = true;
-      trackStart();
-      save({}, 0, false);
-    }
     setPhase("chat");
     setTypingPhase("start");
     window.setTimeout(() => setTypingPhase(null), 700);
-  }, [save]);
+  }, []);
 
   const setValue = useCallback(
     (v: string) => {
@@ -157,15 +156,14 @@ export function FormShell({ theme, questions }: Props) {
       setError(err);
       return;
     }
-    const patch = { [q.id]: v };
+    const nextAnswers = { ...answers, [q.id]: v };
     const isLast = stepIndex === total - 1;
-    trackStep(stepIndex + 1, q.id);
     hapticTick();
 
     if (isLast) {
-      trackLead();
+      trackSubmitApplication();
       celebrate(theme.accent);
-      save(patch, stepIndex, true).finally(() => clearSessionId());
+      save(nextAnswers, stepIndex, true).finally(() => clearSessionId());
 
       if (theme.redirectUrl) {
         setTimeout(() => {
@@ -176,7 +174,7 @@ export function FormShell({ theme, questions }: Props) {
       return;
     }
 
-    save(patch, stepIndex, false);
+    save(nextAnswers, stepIndex, false);
     setTypingPhase("advance");
     window.setTimeout(() => {
       setStepIndex((i) => i + 1);
@@ -227,7 +225,7 @@ export function FormShell({ theme, questions }: Props) {
                       avatarSrc={theme.avatarUrl}
                       avatarName={theme.avatarName}
                     >
-                      {question.label}
+                      <div className="whitespace-pre-line">{question.label}</div>
                     </ChatBubble>
                     {answer ? (
                       <ChatBubble kind="answer">
@@ -250,7 +248,7 @@ export function FormShell({ theme, questions }: Props) {
                         avatarSrc={theme.avatarUrl}
                         avatarName={theme.avatarName}
                       >
-                        {currentQ.label}
+                        <div className="whitespace-pre-line">{currentQ.label}</div>
                       </ChatBubble>
                       {currentValue ? (
                         <ChatBubble kind="answer" animateIn>
@@ -277,10 +275,10 @@ export function FormShell({ theme, questions }: Props) {
                       animateIn
                     >
                       <div>
-                        <div className="text-[15px] md:text-[16px] font-medium">{currentQ.label}</div>
+                        <div className="text-[15px] md:text-[16px] font-medium whitespace-pre-line">{currentQ.label}</div>
                         {currentQ.hint ? (
                           <div
-                            className="mt-1 text-[13px] leading-relaxed"
+                            className="mt-1 text-[13px] leading-relaxed whitespace-pre-line"
                             style={{ color: "color-mix(in oklab, var(--bubble-text) 55%, transparent)" }}
                           >
                             {currentQ.hint}

@@ -116,7 +116,7 @@ function WelcomePreview({ theme }: { theme: Theme }) {
         <div className="text-[16px] font-bold leading-tight mb-1.5" style={{ color: theme.text }}>
           {theme.welcomeTitle || "Titre"}
         </div>
-        <div className="text-[11px] mb-3" style={{ color: theme.muted }}>
+        <div className="text-[11px] mb-3 whitespace-pre-line" style={{ color: theme.muted }}>
           {theme.welcomeDescription || "Description"}
         </div>
         <div
@@ -219,7 +219,7 @@ function DonePreview({ theme }: { theme: Theme }) {
       <div className="text-[18px] font-bold mb-1.5" style={{ color: theme.text }}>
         {theme.doneTitle || "Merci"}
       </div>
-      <div className="text-[12px] max-w-[260px]" style={{ color: theme.muted }}>
+      <div className="text-[12px] max-w-[260px] whitespace-pre-line" style={{ color: theme.muted }}>
         {theme.doneDescription || "On revient vers toi vite."}
       </div>
       {theme.redirectUrl ? (

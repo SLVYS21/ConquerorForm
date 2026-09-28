@@ -35,7 +35,7 @@ export function Done({ title, description }: Props) {
         </svg>
       </motion.div>
       <h1 className="text-[30px] md:text-[36px] font-bold tracking-tight mb-3">{title}</h1>
-      <p className="text-[16px]" style={{ color: "var(--muted)" }}>
+      <p className="text-[16px] whitespace-pre-line" style={{ color: "var(--muted)" }}>
         {description}
       </p>
     </motion.div>

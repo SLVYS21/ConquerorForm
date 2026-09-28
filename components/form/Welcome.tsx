@@ -72,7 +72,7 @@ export function Welcome({ title, description, ctaLabel, onStart, avatarSrc, avat
           {title}
         </h1>
         <p
-          className="text-[15px] md:text-[16px] leading-relaxed mb-8 max-w-xl"
+          className="text-[15px] md:text-[16px] leading-relaxed mb-8 max-w-xl whitespace-pre-line"
           style={{ color: "var(--muted)" }}
         >
           {description}
